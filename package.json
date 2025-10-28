@@ -1,0 +1,21 @@
+{
+  "name": "bunapi",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev":  "bun --watch src/http/server.ts",
+    "build":  "bun build src/http/server.ts",
+    "start":  "NODE_ENV=production bun src/http/server.ts",
+    "test":  "bun test"
+  },  
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "elysia": "^1.4.13"
+  }
+}
