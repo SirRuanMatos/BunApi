@@ -10,7 +10,7 @@ services:
       - POSTGRES_PASSWORD=docker
       - POSTGRES_DB=ruanshop
     volumes:
-      -  postgres_data:/bitnami/postgresql
+      -  ruanshop_pg_data:/bitnami/postgresql
 
 volumes:
-  postgres_data:
+  ruanshop_pg_data:
