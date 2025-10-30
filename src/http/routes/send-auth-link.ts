@@ -4,6 +4,7 @@ import { authLinks, restaurants, users } from "../../db/schema";
 import { eq } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 import { env } from "../../env";
+import { getMessageUrl, mail } from "../../lib/mail";
 
 export const sendAuthLink = new Elysia().post(
     "/authenticate",
@@ -37,9 +38,17 @@ export const sendAuthLink = new Elysia().post(
         authLink.searchParams.set("code", authLinkCode);
         authLink.searchParams.set("redirectUrl", env.AUTH_REDIRECT_URL);
 
-        //TO DO Send email
+        const info = await mail.sendMail({
+            from: {
+                name: "Ruan shop",
+                address: "hi@ruanshop.com",
+            },
+            to: email,
+            subject: "Authenticate to Ruan Shop",
+            text: `Use the following link to authenticate on Ruan Shop:  ${authLink.toString()}`,
+        });
 
-        console.log(" authLink:", authLink.toString());
+        console.log(" info:", getMessageUrl(info));
     },
     {
         body: t.Object({

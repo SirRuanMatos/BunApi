@@ -2,6 +2,7 @@ import jwt from "@elysiajs/jwt";
 import Elysia, { t } from "elysia";
 import type { Static } from "elysia";
 import { env } from "../env";
+import { UnauthorizedError } from "./errors/unauthorized-error";
 
 const jwtPayload = t.Object({
     sub: t.String(),
@@ -9,6 +10,18 @@ const jwtPayload = t.Object({
 });
 
 export const auth = new Elysia()
+    .error({
+        UNAUTHORIZED: UnauthorizedError,
+    })
+    .onError(({ error, code, set }) => {
+        switch (code) {
+            case "UNAUTHORIZED": {
+                set.status = 401;
+
+                return { code, message: error.message };
+            }
+        }
+    })
     .use(
         jwt({
             secret: env.JWT_SECRET_KEY,
@@ -19,7 +32,7 @@ export const auth = new Elysia()
         return {
             signUser: async (payload: Static<typeof jwtPayload>) => {
                 const token = await jwt.sign(payload);
-                
+
                 auth.value = token;
                 auth.httpOnly = true;
                 auth.maxAge = 60 * 60 * 24 * 7; // 7 days
@@ -31,17 +44,17 @@ export const auth = new Elysia()
             },
             getCurrentUser: async () => {
                 const authCookie = cookie.auth;
-                
+
                 const payload = await jwt.verify(authCookie?.value);
 
                 if (!payload) {
-                    throw new Error('Unauthorized')
+                    throw new UnauthorizedError();
                 }
 
                 return {
                     userId: payload.sub,
                     restaurantId: payload.restaurantId,
-                }
+                };
             },
         };
     });

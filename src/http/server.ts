@@ -13,7 +13,23 @@ const app = new Elysia()
     .use(sendAuthLink)
     .use(authenticateFromLink)
     .use(getManagedRestaurant)
-    .use(getProfile);
+    .use(getProfile)
+    .onError(({ error, code, set }) => {
+        switch (code) {
+            case "VALIDATION": {
+                set.status = error.status;
+
+                return error.toResponse();
+            }
+            default: {
+                set.status = 500;
+
+                console.error(error);
+
+                return new Response(null, { status: 500 });
+            }
+        }
+    });
 
 app.listen(appPort, () => {
     console.log(`App running on ${appPort}`);
