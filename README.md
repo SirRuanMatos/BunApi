@@ -139,10 +139,24 @@ What these commands do:
 
 ## Endpoints
 
-| Method | Path          | Description                                                      |
-| ------ | ------------- | ---------------------------------------------------------------- |
-| POST   | /restaurants  | Creates a new restaurant and automatically registers its manager |
-| POST   | /authenticate | Authenticate user sending magical link to user email passed      |
+| Method | Path | Description |
+| ------ | ----- | ----------- |
+| POST   | [/restaurants](#restaurants) | Creates a new restaurant and automatically registers its manager |
+| POST   | [/authenticate](#authenticate) | Starts Magic Link authentication and sends the login link to the provided email |
+| GET    | [/auth-links/authenticate](#auth-linksauthenticate) | Completes Magic Link authentication and generates a session (JWT) |
+| POST   | [/sign-out](#sign-out) | Invalidates the current session and removes the auth cookie |
+| GET    | [/me](#me) | Returns authenticated user profile information |
+| GET    | [/managed-restaurant](#managed-restaurant) | Returns the restaurant managed by the authenticated user |
+| GET    | [/orders/:id](#ordersid) | Retrieves details of a specific order |
+| PATCH  | [/orders/:id/:status](#ordersidstatus) | Updates the status of a specific order |
+| GET    | [/orders](#orders) | Retrieves paginated and filterable list of orders |
+| GET    | [/metrics/month-revenue](#metricsmonth-revenue) | Returns current month revenue and difference compared to last month |
+| GET    | [/metrics/day-orders-amount](#metricsday-orders-amount) | Returns today’s total orders and daily comparison |
+| GET    | [/metrics/month-orders-amount](#metricsmonth-orders-amount) | Returns total monthly orders and comparison |
+| GET    | [/metrics/month-canceled-orders-amount](#metricsmonth-canceled-orders-amount) | Returns number of canceled orders this month and comparison |
+| GET    | [/metrics/popular-products](#metricspopular-products) | Returns the top 5 best-selling products |
+| GET    | [/metrics/daily-revenue-period](#metricsdaily-revenue-period) | Returns daily revenue for a given date range and comparison |
+
 
 ### /restaurants
 
@@ -274,10 +288,11 @@ curl --location 'http://localhost:3333/orders/<order-id>' \
 This endpoint updates the status of an existing order.
 
 Valid status values are:
- - approve
- - dispatch
- - deliver
- - cancel
+
+- approve
+- dispatch
+- deliver
+- cancel
 
 Only authenticated managers of the restaurant that owns the order can update the status.
 
@@ -289,12 +304,175 @@ Only authenticated managers of the restaurant that owns the order can update the
 
 ##### Path
 
-| Parameter | Type     | Required | Description                      |
-| :-------- | :------- | :------- | :------------------------------- |
-| `id`      | `string` | ✅ Yes   | ID of the order that will be updated. |
-| `status`      | `string` | ✅ Yes   | New status for the order. Must be one of the valid statuses listed above. |
+| Parameter | Type     | Required | Description                                                               |
+| :-------- | :------- | :------- | :------------------------------------------------------------------------ |
+| `id`      | `string` | ✅ Yes   | ID of the order that will be updated.                                     |
+| `status`  | `string` | ✅ Yes   | New status for the order. Must be one of the valid statuses listed above. |
 
 ```bash
 curl --location --request PATCH  'http://localhost:3333/orders/<order-id>/<status>' \
+--header 'Cookie: auth=[JWT]'
+```
+
+### /orders
+
+Retrieves all orders from the authenticated manager’s restaurant.
+Supports pagination and filtering by status, customer name, or order ID.
+Returns 10 orders per page by default.
+
+##### Header
+
+| Parameter              | Type     | Required | Description                                                         |
+| :--------------------- | :------- | :------- | :------------------------------------------------------------------ |
+| `Cookie: auth=<token>` | `string` | ✅ Yes   | Cookie that contains the JWT used to authenticate the user session. |
+
+##### Query
+
+| Parameter      | Type     | Required | Description                                                                      |
+| :------------- | :------- | :------- | :------------------------------------------------------------------------------- |
+| `pageIndex`    | `number` | ❌ No    | Index of the page to retrieve. Defaults to page 0.                               |
+| `status`       | `string` | ❌ No    | Filters orders by status (pending, processing, delivering, delivered, canceled). |
+| `customerName` | `string` | ❌ No    | Filters by customer name.                                                        |
+| `orderId`      | `string` | ❌ No    | Filters by a specific order ID.                                                  |
+
+```bash
+curl --location   'http://localhost:3333/orders?pageIndex=0&status=pending' \
+--header 'Cookie: auth=[JWT]'
+```
+
+### /metrics/month-revenue
+
+Retrieves the current month's revenue for the authenticated manager's restaurant and calculates the percentage difference compared to the previous month.
+
+Example use case:
+Display a revenue comparison widget on the dashboard showing growth/decline from last month.
+
+##### Header
+
+| Parameter              | Type     | Required | Description                                                         |
+| :--------------------- | :------- | :------- | :------------------------------------------------------------------ |
+| `Cookie: auth=<token>` | `string` | ✅ Yes   | Cookie that contains the JWT used to authenticate the user session. |
+
+```bash
+curl --location   'http://localhost:3333/metrics/month-revenue' \
+--header 'Cookie: auth=[JWT]'
+```
+
+### /metrics/day-orders-amount
+
+Retrieves the number of orders from the current day for the authenticated manager’s restaurant and calculates the percentage difference compared to the previous day.
+
+Example use case:
+Display a KPI card on the dashboard showing order performance trends.
+
+##### Header
+
+| Parameter              | Type     | Required | Description                                                         |
+| :--------------------- | :------- | :------- | :------------------------------------------------------------------ |
+| `Cookie: auth=<token>` | `string` | ✅ Yes   | Cookie that contains the JWT used to authenticate the user session. |
+
+```bash
+curl --location   'http://localhost:3333/metrics/day-orders-amount' \
+--header 'Cookie: auth=[JWT]'
+```
+
+### /metrics/month-orders-amount
+
+Retrieves the number of orders from the current month for the authenticated manager’s restaurant and calculates the percentage difference compared to the previous month.
+
+This metric is useful to identify monthly performance trends and track restaurant growth.
+
+##### Header
+
+| Parameter              | Type     | Required | Description                                                         |
+| :--------------------- | :------- | :------- | :------------------------------------------------------------------ |
+| `Cookie: auth=<token>` | `string` | ✅ Yes   | Cookie that contains the JWT used to authenticate the user session. |
+
+```bash
+curl --location   'http://localhost:3333/metrics/month-orders-amount' \
+--header 'Cookie: auth=[JWT]'
+```
+
+### /metrics/month-canceled-orders-amount
+
+Retrieves the number of canceled orders from the current month for the authenticated manager’s restaurant and calculates the percentage difference compared to the previous month.
+
+Useful for identifying operational problems or customer dropout trends.
+
+##### Header
+
+| Parameter              | Type     | Required | Description                                                         |
+| :--------------------- | :------- | :------- | :------------------------------------------------------------------ |
+| `Cookie: auth=<token>` | `string` | ✅ Yes   | Cookie that contains the JWT used to authenticate the user session. |
+
+```bash
+curl --location   'http://localhost:3333/metrics/month-canceled-orders-amount' \
+--header 'Cookie: auth=[JWT]'
+```
+
+### /metrics/popular-products
+
+Returns the top five most frequently purchased products for the authenticated manager’s restaurant, ordered by total quantity sold.
+
+This endpoint is useful for insights such as:
+
+- identifying best-selling menu items,
+- making inventory decisions,
+- optimizing promotions based on product popularity.
+
+##### Header
+
+| Parameter              | Type     | Required | Description                                                         |
+| :--------------------- | :------- | :------- | :------------------------------------------------------------------ |
+| `Cookie: auth=<token>` | `string` | ✅ Yes   | Cookie that contains the JWT used to authenticate the user session. |
+
+```bash
+curl --location   'http://localhost:3333/metrics/popular-products' \
+--header 'Cookie: auth=[JWT]'
+```
+
+### /metrics/daily-revenue-period
+
+Returns the revenue five most frequently purchased products for the authenticated manager’s restaurant, ordered by total quantity sold.
+
+This endpoint is useful for insights such as:
+
+- identifying best-selling menu items,
+- making inventory decisions,
+- optimizing promotions based on product popularity.
+
+##### Header
+
+| Parameter              | Type     | Required | Description                                                         |
+| :--------------------- | :------- | :------- | :------------------------------------------------------------------ |
+| `Cookie: auth=<token>` | `string` | ✅ Yes   | Cookie that contains the JWT used to authenticate the user session. |
+
+```bash
+curl --location   'http://localhost:3333/metrics/popular-products' \
+--header 'Cookie: auth=[JWT]'
+```
+
+### /metrics/daily-revenue-period
+
+Retrieves the total revenue for each day within a selected date range (up to 7 days) for the authenticated manager’s restaurant.
+
+Typical usage:
+Display a chart in the dashboard showing revenue evolution over time.
+
+##### Header
+
+| Parameter              | Type     | Required | Description                                                         |
+| :--------------------- | :------- | :------- | :------------------------------------------------------------------ |
+| `Cookie: auth=<token>` | `string` | ✅ Yes   | Cookie that contains the JWT used to authenticate the user session. |
+
+##### Query
+
+| Parameter | Type     | Required | Description                                                      |
+| :-------- | :------- | :------- | :--------------------------------------------------------------- |
+| `from`    | `string` | ❌ No    | Starting date of the range (ISO format recommended: YYYY-MM-DD). |
+| `to`      | `string` | ❌ No    | Ending date of the range (ISO format recommended: YYYY-MM-DD).   |
+
+```bash
+curl --location   'http://localhost:3333/metrics/daily-revenue-period?from=2025-01-01&to=2025-01-07' \
 --header 'Cookie: auth=[JWT]'
 ```
